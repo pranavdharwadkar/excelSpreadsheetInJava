@@ -162,7 +162,7 @@ public class Spreadsheet
 
         // Add rows 1 to 20
         for (int row = 0; row < MAX_NUM_ROWS; row++) {
-            sb.append(String.format("%2d |", row + 1)); // Add the row number
+            sb.append(String.format(FIRSTCOLUMNFORMAT,row + 1)).append("|");
             for (int col = 0; col < MAX_NUM_COLUMNS; col++) {
                 //sb.append("");
                 sb.append(mySheet[row][col].abbreviatedCellText());
