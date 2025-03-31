@@ -1,0 +1,29 @@
+<project>
+  <path id="classpath.test">
+    <pathelement location="./lib/junit-4.12.jar"/>
+    <pathelement location="./lib/hamcrest-core-1.3.jar"/>
+    <pathelement location="."/>
+  </path>
+
+  <target name="clean">
+    <delete>
+      <fileset dir="." includes="*.class"/>
+    </delete>
+  </target>
+
+  <target name="compile" depends="clean">
+    <javac srcdir="." destdir="." includeantruntime="false" debug="on">
+      <classpath refid="classpath.test"/>
+    </javac>
+  </target>
+
+  <target name="test" depends="compile">
+    <junit printsummary="on" haltonfailure="no">
+      <classpath>
+	<path refid="classpath.test"/>
+      </classpath>
+      <formatter type="brief" usefile="false"/>
+      <test name="TestsALL"/>
+    </junit>
+  </target>
+</project>

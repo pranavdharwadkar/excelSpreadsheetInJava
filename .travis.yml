@@ -1,0 +1,6 @@
+language: java
+
+before_script:
+- sudo apt-get install ant-optional
+- git clone https://github.com/twangcs2021/textexcel-tests.git textexcel-tests
+- mv textexcel-tests/*.java .
