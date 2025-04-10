@@ -8,8 +8,8 @@
  */
 public class SpreadsheetLocation extends Location
 {
-    private int rowNumber;
-    private int colNumber;
+    private final int rowNumber;
+    private final int colNumber;
 
     @Override
     public int getRow()

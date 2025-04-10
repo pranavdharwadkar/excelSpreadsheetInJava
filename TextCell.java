@@ -9,7 +9,7 @@
  */
 public class TextCell extends Cell
 {
-    private String text;
+    private final String text;
 
     public TextCell(String text) {
         this.text = text;
@@ -26,4 +26,9 @@ public class TextCell extends Cell
     public String fullCellText() {
         return "\"" + text + "\"";
     }
+
+    public int compareTo(TextCell other) {
+        return this.fullCellText().compareTo(other.fullCellText());
+    }
+    
 }

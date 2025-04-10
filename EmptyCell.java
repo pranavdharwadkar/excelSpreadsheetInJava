@@ -32,6 +32,6 @@ public class EmptyCell extends Cell
 
     @Override
     public String fullCellText() {
-        return String.format(CELLFORMAT, ""); // Empty cells also show nothing in full cell text
+        return ""; // Empty cells also show nothing in full cell text
     }
 }

@@ -22,4 +22,9 @@ public abstract class RealCell extends Cell {
     public String fullCellText() {
         return originalValue;
     }
+
+    public int compareTo(RealCell other) {
+        return Double.compare(this.getDoubleValue(), other.getDoubleValue());
+    }
+    
 }

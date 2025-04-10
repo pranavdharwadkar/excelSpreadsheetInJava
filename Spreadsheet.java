@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Spreadsheet
@@ -7,7 +9,7 @@
  */
 public class Spreadsheet
 {
-    private Cell[][] mySheet;
+    private final Cell[][] mySheet;
     public static int MAX_NUM_ROWS = 20;
     public static int MAX_NUM_COLUMNS = 12;
 
@@ -32,6 +34,11 @@ public class Spreadsheet
         System.out.println("Processing command: " + command);
 
         String[] parts = command.split(" ", 3);
+
+        if (parts.length == 0)
+        {
+            return "";
+        }
         String cmd = parts[0];
         
         // Check if the command is a single word
@@ -52,6 +59,9 @@ public class Spreadsheet
                 return getGridText();
             }
 
+            if (command.equalsIgnoreCase("")) {
+                return "";
+            }
             // Now a single command probably means inspect a cell
 
             location = new SpreadsheetLocation(cmd);
@@ -72,55 +82,85 @@ public class Spreadsheet
                 location = new SpreadsheetLocation(cellIdentifier);
                 mySheet[location.getRow()][location.getCol()] = new EmptyCell();
                 return getGridText();
-            } else {
-                return "Invalid command";
+            } 
+            
+            if (cmd.equalsIgnoreCase("sorta") || cmd.equalsIgnoreCase("sortd")) {
+                String range = parts[1];
+                String[] corners = range.split("-");
+                SpreadsheetLocation start = new SpreadsheetLocation(corners[0]);
+                SpreadsheetLocation end = new SpreadsheetLocation(corners[1]);
+            
+                List<Cell> cells = getCellRange(start, end);
+            
+                // Determine if TextCell or RealCell sort
+                boolean isText = cells.get(0) instanceof TextCell;
+                boolean isReal = cells.get(0) instanceof RealCell;
+            
+                // You may assume they are all the same type per spec
+                if (isText || isReal) {
+                    bubbleSort(cells, cmd.equalsIgnoreCase("sorta"));
+                    putCellsBack(cells, start, end);
+                    return getGridText();
+                } else {
+                    return "Unsupported cell type for sorting.";
+                }
             }
+
+            return "Invalid command";
         }
         
+        // Check if the command is a three-part command
         if (parts.length == 3) 
         {
-            // It is a 3 part command, so it must be an assignment to a cell
-            // Check if it is a valid assignment
-            if (command.contains("=")) {
-                // It is a valid assignment
+            // It is a 3 part command, first possibility is it is an assignment to a cell
+            // Check if it is a assignment indeed
+            if (command.contains("=")) 
+            {
+                // It is an assign command. 
                 // Check if it is a valid cell identifier
                 cellIdentifier = parts[0];
                 location = new SpreadsheetLocation(cellIdentifier);
+
                 if (location.getRow() < 0 || location.getRow() >= MAX_NUM_ROWS || location.getCol() < 0 || location.getCol() >= MAX_NUM_COLUMNS) {
                     return "Invalid cell identifier";
                 }
-                String cellValue = parts[2];
-                
+
+                String cellValue = parts[2].trim();
                 // First check the type of cellValue, whether it is TextCell 
-                // or Number Cell or Double Number cell Percent Cell
+                // or Number Cell or Double Number cell or Percent Cell or 
+                // Formula cell
+
+                // Check if it is a formula cell by checking for starting and ending parentheses
+                if (cellValue.startsWith("(") && cellValue.endsWith(")")) {
+                    mySheet[location.getRow()][location.getCol()] = new FormulaCell(cellValue, this);
+                    return getGridText();
+                }
+
+                // Check if it a percent cell by checking if it ends with a % sign
                 if (cellValue.endsWith("%")) {
-                    // It is a percent cell
                     mySheet[location.getRow()][location.getCol()] = new PercentCell(cellValue);
                     return getGridText();
-                } else {
-                    // check if it a double number cell
-                    try {
-                        Double.parseDouble(cellValue);
+                }
+                // Check if it is a Double Number cell
+                // Try to parse as value
+                try {
+                    Double.valueOf(cellValue);
+                    mySheet[location.getRow()][location.getCol()] = new ValueCell(cellValue);
+                    return getGridText();
+                } catch (NumberFormatException e) {
+                    // It is not a double number cell
+                    // Check if it a number cell
+                    if (cellValue.matches("[0-9]+")) {
+                        // It is a number cell
                         mySheet[location.getRow()][location.getCol()] = new ValueCell(cellValue);
                         return getGridText();
-                    } catch (NumberFormatException e) {
-                        // It is not a double number cell
-                        // Check if it a number cell
-                        if (cellValue.matches("[0-9]+")) {
-                            // It is a number cell
-                            mySheet[location.getRow()][location.getCol()] = new ValueCell(cellValue);
+                    } else {
+                    // Number format failed; try checking if it's text
+                        if (cellValue.startsWith("\"") && cellValue.endsWith("\"")) 
+                        {
+                            cellValue = cellValue.substring(1, cellValue.length() - 1);
+                            mySheet[location.getRow()][location.getCol()] = new TextCell(cellValue);
                             return getGridText();
-                        } else {
-                            // It is a text cell
-                            // Check if it is a text cell
-                            if (cellValue.startsWith("\"") && cellValue.endsWith("\"")) {
-                                // Convert to a TextCell
-                                cellValue = cellValue.substring(1, cellValue.length() - 1);
-                                mySheet[location.getRow()][location.getCol()] = new TextCell(cellValue);
-                
-                                // Return the full grid text after assignment
-                                return getGridText();
-                            }
                         }
                     }
                 }
@@ -173,4 +213,46 @@ public class Spreadsheet
 
         return sb.toString();
     }
+
+    private List<Cell> getCellRange(SpreadsheetLocation start, SpreadsheetLocation end) 
+    {
+        List<Cell> cells = new ArrayList<>();
+        for (int row = start.getRow(); row <= end.getRow(); row++) {
+            for (int col = start.getCol(); col <= end.getCol(); col++) {
+                cells.add(mySheet[row][col]);
+            }
+        }
+        return cells;
+    }
+
+    private void bubbleSort(List<Cell> cells, boolean ascending) 
+    {
+        for (int i = 0; i < cells.size(); i++) {
+            for (int j = 0; j < cells.size() - 1 - i; j++) {
+                Cell a = cells.get(j);
+                Cell b = cells.get(j + 1);
+                int result = 0;
+                if (a instanceof TextCell && b instanceof TextCell) {
+                    result = ((TextCell) a).compareTo((TextCell) b);
+                } else if (a instanceof RealCell && b instanceof RealCell) {
+                    result = ((RealCell) a).compareTo((RealCell) b);
+                }
+                if ((ascending && result > 0) || (!ascending && result < 0)) {
+                    cells.set(j, b);
+                    cells.set(j + 1, a);
+                }
+            }
+        }
+    }
+    
+    private void putCellsBack(List<Cell> sorted, SpreadsheetLocation start, SpreadsheetLocation end) {
+        int index = 0;
+        for (int row = start.getRow(); row <= end.getRow(); row++) {
+            for (int col = start.getCol(); col <= end.getCol(); col++) {
+                mySheet[row][col] = sorted.get(index++);
+            }
+        }
+    }
+    
+
 }
