@@ -38,4 +38,9 @@ public class SpreadsheetLocation extends Location
         this.rowNumber = Integer.parseInt(cellName.substring(1)) -1;
     }
 
+    public SpreadsheetLocation(int row, int col) {
+        this.rowNumber = row;
+        this.colNumber = col;
+    }
+    
 }

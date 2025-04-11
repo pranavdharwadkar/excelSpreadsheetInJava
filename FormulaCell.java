@@ -1,5 +1,3 @@
-import java.util.ArrayList;
-import java.util.List;
 
 public class FormulaCell extends RealCell {
     private final String formula;
@@ -22,7 +20,8 @@ public class FormulaCell extends RealCell {
 
     @Override
     public String fullCellText() {
-        return "(" + formula + ")";
+        return formula;
+        // return "(" + formula + ")";
     }
 
     @Override
@@ -40,29 +39,48 @@ public class FormulaCell extends RealCell {
     private double computeMethodFormula(String[] tokens) {
         double sum = 0;
         int count = 0;
-
-        for (int i = 1; i < tokens.length; i++) {
-            String cellIdentifier = tokens[i];
     
-            SpreadsheetLocation location = new SpreadsheetLocation(cellIdentifier);
-            Cell cell = spreadsheet.getCell(location);
-            if (cell != null) {
-                double value = 0;
-                if (cell instanceof RealCell realCell) {
-                    value = realCell.getDoubleValue();
+        for (int i = 1; i < tokens.length; i++) {
+            String part = tokens[i];
+    
+            if (part.contains("-")) {
+                // It's a range, like A1-B3
+                String[] rangeParts = part.split("-");
+                SpreadsheetLocation start = new SpreadsheetLocation(rangeParts[0]);
+                SpreadsheetLocation end = new SpreadsheetLocation(rangeParts[1]);
+    
+                int startRow = Math.min(start.getRow(), end.getRow());
+                int endRow = Math.max(start.getRow(), end.getRow());
+                int startCol = Math.min(start.getCol(), end.getCol());
+                int endCol = Math.max(start.getCol(), end.getCol());
+    
+                for (int row = startRow; row <= endRow; row++) {
+                    for (int col = startCol; col <= endCol; col++) {
+                        Cell cell = spreadsheet.getCell(new SpreadsheetLocation(row, col));
+                        if (cell instanceof RealCell realCell) {
+                            sum += realCell.getDoubleValue();
+                            count++;
+                        }
+                    }
                 }
-                sum += value;
-                count++;
+            } else {
+                // It's a single cell reference
+                SpreadsheetLocation location = new SpreadsheetLocation(part);
+                Cell cell = spreadsheet.getCell(location);
+                if (cell instanceof RealCell realCell) {
+                    sum += realCell.getDoubleValue();
+                    count++;
+                }
             }
         }
-
+    
         if (tokens[0].equalsIgnoreCase("SUM")) {
             return sum;
         } else { // AVG
             return count == 0 ? 0 : sum / count;
         }
     }
-
+    /*
     private List<String> parseArithmeticTokens(String formula) {
         List<String> tokens = new ArrayList<>();
         String[] rawTokens = formula.trim().split(" ");
@@ -114,6 +132,7 @@ public class FormulaCell extends RealCell {
         System.out.println("Tokens parsed: " + tokens);
         return tokens;
     }
+    */
     /*
     private double computeArithmeticFormula(String[] originalTokens) {
         List<String> tokens = parseArithmeticTokens(String.join(" ", originalTokens));
