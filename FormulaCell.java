@@ -31,7 +31,7 @@ public class FormulaCell extends RealCell {
         String[] tokens = expr.split(" ");
 
         // Handle Method Formulas: SUM or AVG
-        if (tokens[0].equals("SUM") || tokens[0].equals("AVG")) {
+        if (tokens[0].equalsIgnoreCase("SUM") || tokens[0].equalsIgnoreCase("AVG")) {
             return computeMethodFormula(tokens);
         } else {
             return computeArithmeticFormula(tokens);
@@ -56,7 +56,7 @@ public class FormulaCell extends RealCell {
             }
         }
 
-        if (tokens[0].equals("SUM")) {
+        if (tokens[0].equalsIgnoreCase("SUM")) {
             return sum;
         } else { // AVG
             return count == 0 ? 0 : sum / count;
@@ -114,7 +114,7 @@ public class FormulaCell extends RealCell {
         System.out.println("Tokens parsed: " + tokens);
         return tokens;
     }
-            
+    /*
     private double computeArithmeticFormula(String[] originalTokens) {
         List<String> tokens = parseArithmeticTokens(String.join(" ", originalTokens));
         double result = 0;
@@ -144,6 +144,42 @@ public class FormulaCell extends RealCell {
         }
     
         return result;
+    }
+    */
+    private double computeArithmeticFormula(String[] originalTokens) {
+        // Remove parentheses and trim
+        String formula = String.join(" ", originalTokens)
+                            .replace("(", "")
+                            .replace(")", "")
+                            .trim();
+        String[] tokens = formula.split(" ");
+    
+        if (tokens.length == 0) return 0;
+    
+        double result = getValue(tokens[0]);
+    
+        for (int i = 1; i < tokens.length - 1; i += 2) {
+            String operator = tokens[i];
+            double nextValue = getValue(tokens[i + 1]);
+    
+            result = applyOperator(result, nextValue, operator);
+        }
+    
+        return result;
+    }
+    
+    private double getValue(String token) {
+        token = token.trim();
+        if (isNumber(token)) {
+            return Double.parseDouble(token);
+        } else {
+            SpreadsheetLocation location = new SpreadsheetLocation(token);
+            Cell cell = spreadsheet.getCell(location);
+            if (cell instanceof RealCell realCell) {
+                return realCell.getDoubleValue();
+            }
+        }
+        return 0; // fallback
     }
     
     private boolean isOperator(String token) {
