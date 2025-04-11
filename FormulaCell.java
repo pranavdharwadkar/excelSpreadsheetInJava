@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class FormulaCell extends RealCell {
     private final String formula;
     private final Spreadsheet spreadsheet;
@@ -60,29 +63,89 @@ public class FormulaCell extends RealCell {
         }
     }
 
-    private double computeArithmeticFormula(String[] tokens) {
+    private List<String> parseArithmeticTokens(String formula) {
+        List<String> tokens = new ArrayList<>();
+        String[] rawTokens = formula.trim().split(" ");
+        String operator = "+"; // default starting operator
+    
+        System.out.println("Parsing formula: " + formula);
+        for (int i = 0; i < rawTokens.length; i++) {
+            String token = rawTokens[i];
+            System.out.println("Processing token: " + token);
+    
+            if (token.equals("+") || token.equals("-")) {
+                // We found an operator, decide if we need to toggle sign
+                operator = token;
+                System.out.println("Found operator: " + operator);
+    
+                // Look ahead for consecutive operators like - -2 or - +3
+                while (i + 1 < rawTokens.length &&
+                       (rawTokens[i + 1].equals("+") || rawTokens[i + 1].equals("-"))) {
+                    i++; // Skip the current operator
+                    token = rawTokens[i];
+    
+                    // Toggle sign based on the number of consecutive signs
+                    operator = operator.equals(token) ? "+" : "-";
+                    System.out.println("Toggling operator: " + operator);
+                }
+            }
+    
+            // Process the next token (either a number or cell reference)
+            if (i + 1 < rawTokens.length) {
+                String nextToken = rawTokens[++i];
+                System.out.println("Next token: " + nextToken);
+    
+                // Handle number token
+                if (isNumber(nextToken)) {
+                    String processedToken = operator.equals("-") ? "-" + nextToken : nextToken;
+                    tokens.add(processedToken);
+                    System.out.println("Added number: " + processedToken);
+                } else {
+                    // It's a cell reference (not a number)
+                    tokens.add(operator);  // add the current operator
+                    tokens.add(nextToken); // add the cell reference
+                    System.out.println("Added cell reference: " + nextToken);
+                }
+            }
+    
+            operator = "+"; // Reset operator after each token
+        }
+    
+        System.out.println("Tokens parsed: " + tokens);
+        return tokens;
+    }
+            
+    private double computeArithmeticFormula(String[] originalTokens) {
+        List<String> tokens = parseArithmeticTokens(String.join(" ", originalTokens));
         double result = 0;
         String operator = "+";
-
+    
         for (String token : tokens) {
             if (isOperator(token)) {
                 operator = token;
             } else {
-                SpreadsheetLocation location = new SpreadsheetLocation(token);
-                Cell cell = spreadsheet.getCell(location);
-                // Check if the cell is not null and is a RealCell
-                if (cell != null) {
-                    double value = 0;
+                double value;
+    
+                if (isNumber(token)) {
+                    value = Double.parseDouble(token);
+                } else {
+                    SpreadsheetLocation location = new SpreadsheetLocation(token);
+                    Cell cell = spreadsheet.getCell(location);
+    
                     if (cell instanceof RealCell realCell) {
                         value = realCell.getDoubleValue();
+                    } else {
+                        value = 0;
                     }
-                    result = applyOperator(result, value, operator);
                 }
+    
+                result = applyOperator(result, value, operator);
             }
         }
-
+    
         return result;
     }
+    
     private boolean isOperator(String token) {
         return token.equals("+") || token.equals("-") || token.equals("*") || token.equals("/");
     }
@@ -95,6 +158,16 @@ public class FormulaCell extends RealCell {
             default -> throw new IllegalArgumentException("Invalid operator: " + operator);
         };
     }
+
+    private boolean isNumber(String s) {
+        try {
+            Double.parseDouble(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+    
     @Override
     public String toString() {
         return "FormulaCell{" +

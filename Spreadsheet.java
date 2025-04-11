@@ -75,7 +75,7 @@ public class Spreadsheet
                 
             // It is a 2 part command, so it must be a command to clear a specific cell
             // Double check if there is a clear command if not it is invalid command
-            if (command.startsWith("clear")) {
+            if (cmd.equalsIgnoreCase("clear")) {
                 // It contains clear command, so clear the specific cell
                 // Get the cell identifier
                 cellIdentifier = command.split(" ")[1];
